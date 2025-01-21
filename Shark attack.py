@@ -43,13 +43,14 @@ class Fish:
     def __init__(self, width, height):
         self.position = np.array([width*random.random(),height*random.random()])
         self.direction = random_normal_vector()
+        self.skeleton = np.array([self.position-i*5*self.direction for i in range(5)])
     
     # Define the representation of the fish
     def __repr__(self):
     	return "><(((°>"
     
     # Animation of the fish
-    def animate(self, school, Shark, width, height):
+    def update_position(self, school, Shark, width, height):
         # Avoid the border of the aquiarium
         avoid_border = np.array([0.,0.])
         border_visibility = ((width+height)/2)/20
@@ -82,7 +83,15 @@ class Fish:
 
         # Update the direction and the position of the fish
         self.direction = normalize( (18*self.direction + adapt_direction/6 + avoid_border/10 + avoid_predator) )
-        self.position += self.direction + random_normal_vector()/10
+        self.position += speed_scale*(self.direction  + random_normal_vector()/10)
+
+    def animate(self):
+        self.skeleton[0]=self.position
+        pygame.draw.circle(screen, Blue, self.skeleton[0], 5)
+        for i in range(len(self.skeleton)-1):
+            direction = normalize(self.skeleton[i+1] - self.skeleton[i])
+            self.skeleton[i+1] = self.skeleton[i] + 4*direction
+            pygame.draw.circle(screen, Blue, self.skeleton[i], 5-i)
 
 # Define the class School_of_fish
 class School_of_fish:
@@ -100,50 +109,58 @@ class School_of_fish:
     # Animation of the school
     def animate(self, shark):
         for fish in self.school:
-            fish.animate(self.school, shark, self.width, self.height)
-            pygame.draw.circle(screen, Blue, fish.position, 3)
+            fish.update_position(self.school, shark, self.width, self.height)
+            fish.animate()
     
 # Define the class Predator
 class Predator:
     """The Predator class determines the shark and how to control it."""
+    # Initialize the shark with a random position and direction
     def __init__(self, width, height):
         self.position = np.array([width*random.random(),height*random.random()])
+        self.dimension = [7,10,10,10,9,9,7,5,5,4,4,3,3]
+        self.direction = random_normal_vector()
+        self.skeleton = np.array([self.position-i*5*self.direction for i in range(len(self.dimension))])
         self.speed = 1.2
         self.boost_level = 100
-
-    def loading_animate(self):
-        pygame.draw.circle(screen, Red, self.position, 5)
     
-    def animate(self):
+    def update_position(self,x,y,boost):
     # Handle key presses
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_SPACE] and Shark.boost_level > 0:
+        if boost and Shark.boost_level > 0:
             Shark.speed = 2
             Shark.boost_level -= 1
         else:
             Shark.speed = 1.2
             if Shark.boost_level < 100:
                 Shark.boost_level += 0.1
-        if keys[pygame.K_LEFT]:
-            Shark.position[0] -= Shark.speed
-        if keys[pygame.K_RIGHT]:
-            Shark.position[0] += Shark.speed
-        if keys[pygame.K_UP]:
-            Shark.position[1] -= Shark.speed
-        if keys[pygame.K_DOWN]:
-            Shark.position[1] += Shark.speed
+        if not (x,y)==(0,0):
+            Shark.direction = speed_scale*normalize(np.array([x,y]))
+            Shark.position += Shark.speed*Shark.direction
+        else:
+            Shark.direction = 0.999*self.direction
+            Shark.position += Shark.direction
 
         # Keep the point within the screen boundaries
         Shark.position[0] = max(5, min(width - 5, Shark.position[0]))
         Shark.position[1] = max(5, min(height - 5, Shark.position[1]))
         
-        pygame.draw.circle(screen, Red, self.position, 5)
+    def animate(self, x, y, boost=False, loading=False):
+        if not loading:
+            self.update_position(x, y, boost)
+        self.skeleton[0]=self.position
+        pygame.draw.circle(screen, Blue, self.skeleton[0], self.dimension[0])
+        for i in range(len(self.skeleton)-1):
+            direction = normalize(self.skeleton[i+1] - self.skeleton[i])
+            self.skeleton[i+1] = self.skeleton[i] + 5*direction
+            pygame.draw.circle(screen, Red, self.skeleton[i], self.dimension[i])
 
 
 ## Main program
 
 # Initialize Pygame
 pygame.init()
+clock = pygame.time.Clock()
+FPS=60
 pygame.mixer.init()
 pygame.mixer.music.load("Shark_music.mp3")
 pygame.mixer.music.play(loops=-1)
@@ -194,6 +211,7 @@ while running:
     screen.blit(text_2, (250,433))
     screen.blit(text_3, (250,466))
     pygame.display.flip()
+    clock.tick(FPS)
 
 # Loop for several game
 while not end_of_game:
@@ -208,6 +226,7 @@ while not end_of_game:
 
     # Construction of the school and the predator
     nbr_of_fish = 50
+    speed_scale = 2.5
     School=School_of_fish(nbr_of_fish, width, height)
     Shark=Predator(width, height)
 
@@ -238,9 +257,11 @@ while not end_of_game:
         screen.blit(Hunting, Hunting_bg)
         draw_level_bar(screen, 580, 650, 200, 20, Shark.boost_level/100 )
         draw_level_bar(screen, 20, 650, 200, 20, ((nbr_of_fish - School.size()))/10 )
-        Shark.loading_animate()
+        Shark.animate(0,0,loading=True)
         School.animate(Shark)
         screen.blit(Count, Count_bg)
+        pygame.display.flip()
+        clock.tick(FPS)
 
         # Update the countdown
         pygame.display.flip()
@@ -267,6 +288,16 @@ while not end_of_game:
         keys = pygame.key.get_pressed()
         if keys[pygame.K_ESCAPE]:
             running = False
+        x,y = 0,0        
+        if keys[pygame.K_LEFT]:
+            x = -1
+        if keys[pygame.K_RIGHT]:
+            x = 1
+        if keys[pygame.K_UP]:
+            y = -1
+        if keys[pygame.K_DOWN]:
+            y = 1
+        boost = keys[pygame.K_SPACE]
 
         # Update the display
         screen.fill(White)
@@ -274,9 +305,10 @@ while not end_of_game:
         screen.blit(Hunting, Hunting_bg)
         draw_level_bar(screen, 580, 650, 200, 20, Shark.boost_level/100 )
         draw_level_bar(screen, 20, 650, 200, 20, ((nbr_of_fish - School.size()))/10 )
-        Shark.animate()
+        Shark.animate(x,y,boost)
         School.animate(Shark)
         pygame.display.flip()
+        clock.tick(FPS)
 
         # Check if the game is over
         if nbr_of_fish - School.size() == 10:
@@ -321,6 +353,7 @@ while not end_of_game:
         screen.blit(menu_1, (30,600))
         screen.blit(menu_2, (30,625))
         pygame.display.flip()
+        clock.tick(FPS)
 
 
 # Quit Pygame
