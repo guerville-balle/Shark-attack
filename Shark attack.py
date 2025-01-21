@@ -162,8 +162,6 @@ pygame.init()
 clock = pygame.time.Clock()
 FPS=60
 pygame.mixer.init()
-pygame.mixer.music.load("Shark_music.mp3")
-pygame.mixer.music.play(loops=-1)
 
 # Set up the display
 width, height = 800, 600
@@ -189,6 +187,10 @@ text_1 = menu.render("- Press 's' to start", True, (255, 255, 255))
 text_2 = menu.render("- Press 'exc' to quit", True, (255, 255, 255))
 text_3 = menu.render("- Press 'space' to use the speed booster", True, (255, 255, 255))
 
+# Load the music
+pygame.mixer.music.load("Menu_music.mp3")
+pygame.mixer.music.play(loops=-1)
+
 # Opening loop
 running = True
 end_of_game = False
@@ -213,6 +215,11 @@ while running:
     pygame.display.flip()
     clock.tick(FPS)
 
+# Stop the music
+pygame.mixer.music.stop()
+
+## Start the game
+
 # Loop for several game
 while not end_of_game:
 
@@ -231,10 +238,14 @@ while not end_of_game:
     Shark=Predator(width, height)
 
     # Prepare the countdown
-    load_counter = 150
     Count_down = 3
+    load_counter = Count_down*FPS
     Count = title.render(f"{Count_down}", True, Black)
     Count_bg = Count.get_rect(center=(400, 300))
+
+    # Load the music
+    pygame.mixer.music.load("Shark_music.mp3")
+    pygame.mixer.music.play()
 
     # Loading loop
     running = True
@@ -265,7 +276,7 @@ while not end_of_game:
 
         # Update the countdown
         pygame.display.flip()
-        if load_counter % 50 == 0:
+        if load_counter % FPS == 0:
             Count_down -= 1
             Count = title.render(f"{Count_down}", True, Black)
             Count_bg = Count.get_rect(center=(400, 300))
@@ -276,6 +287,8 @@ while not end_of_game:
     # Initialization of the timer
     elapsed_time = 100000
     start = time.time()
+    timer = 0
+    win = True
 
     # Beginning of the game
     while running and not end_of_game:
@@ -285,6 +298,8 @@ while not end_of_game:
             if event.type == pygame.QUIT:
                 running = False
                 end_of_game = True
+
+        # Handle key presses        
         keys = pygame.key.get_pressed()
         if keys[pygame.K_ESCAPE]:
             running = False
@@ -315,18 +330,33 @@ while not end_of_game:
             running = False
             end = time.time()
             elapsed_time = end - start
+        
+        if timer == FPS*68: # 68 seconds is the lenght of the music
+            running = False
+            win = False
+        else:
+            timer += 1
 
     time.sleep(0.25)
+
+    # Change the music
+    pygame.mixer.music.stop()
+    pygame.mixer.music.load("Menu_music.mp3")
+    pygame.mixer.music.play(loops=-1)
 
     ## End of the game
 
     # Prepare the texts
     Score_text = pygame.font.Font(None, 40)
-    Score = Score_text.render("Your score is:", True, (255, 255, 255))
-    Score_background = Score.get_rect(center=(400, 300))
+    if win:
+        Score = Score_text.render("Your score is:", True, (255, 255, 255))
+        Score_background = Score.get_rect(center=(400, 300))
 
-    Score_value = Score_text.render(f"{elapsed_time:.3f} seconds", True, (255, 255, 255))
-    Value_background = Score_value.get_rect(center=(400, 350))
+        Score_value = Score_text.render(f"{elapsed_time:.3f} seconds", True, (255, 255, 255))
+        Value_background = Score_value.get_rect(center=(400, 350))
+    else:
+        Score = Score_text.render("Game over!", True, (255, 255, 255))
+        Score_background = Score.get_rect(center=(400, 300))
 
     menu = pygame.font.Font(None, 25)
     menu_1 = menu.render("- Press 'r' to play again", True, (255, 255, 255))
@@ -335,10 +365,14 @@ while not end_of_game:
     # End of the game loop
     running = True
     while running and not end_of_game:
+
+        # Handle quit event
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
                 end_of_game = True
+
+        # Handle key presses
         keys = pygame.key.get_pressed()
         if keys[pygame.K_ESCAPE]:
             running = False
@@ -349,11 +383,15 @@ while not end_of_game:
         # Update the display
         screen.fill((0, 0, 0))  
         screen.blit(Score, Score_background)
-        screen.blit(Score_value, Value_background)
+        if win:
+            screen.blit(Score_value, Value_background)
         screen.blit(menu_1, (30,600))
         screen.blit(menu_2, (30,625))
         pygame.display.flip()
         clock.tick(FPS)
+    
+    # Stop the music
+    pygame.mixer.music.stop()
 
 
 # Quit Pygame
