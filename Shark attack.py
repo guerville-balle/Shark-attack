@@ -33,6 +33,9 @@ def draw_level_bar(surface, x, y, width, height, ratio):
     pygame.draw.rect(surface, (0, 255, 0), (x, y, width * ratio, height))
     pygame.draw.rect(screen, Black, pygame.Rect(x, y, width, height),2)
     
+# Draw the aquarium
+def draw_aquarium(width,height):
+    pygame.draw.rect(screen,Black,pygame.Rect(3, 3, width-6, height-6),4)
 
 ## Define the classes
 
@@ -47,7 +50,7 @@ class Fish:
     
     # Define the representation of the fish
     def __repr__(self):
-    	return "><(((°>"
+        return "><(((°>"
     
     # Animation of the fish
     def update_position(self, school, Shark, width, height):
@@ -76,10 +79,10 @@ class Fish:
         # Avoid the predators when they are close    
         avoid_predator = np.array([0.,0.])
         d = distance(Shark.position,self.position)
-        if d<5:
+        if d<10:
             School.school.remove(self)
-        elif d<30:
-            avoid_predator += ((1-d/30))*(self.position - Shark.position)
+        elif d<50:
+            avoid_predator += ((1-d/50))*(self.position - Shark.position)
 
         # Update the direction and the position of the fish
         self.direction = normalize( (18*self.direction + adapt_direction/6 + avoid_border/10 + avoid_predator) )
@@ -91,7 +94,12 @@ class Fish:
         for i in range(len(self.skeleton)-1):
             direction = normalize(self.skeleton[i+1] - self.skeleton[i])
             self.skeleton[i+1] = self.skeleton[i] + 4*direction
-            pygame.draw.circle(screen, Blue, self.skeleton[i], 5-i)
+            pygame.draw.circle(screen, Blue, self.skeleton[i+1], 5-i)
+        normal=self.skeleton[0]-self.skeleton[1]
+        pygame.draw.polygon(screen,Blue,[self.skeleton[0],self.skeleton[1]+1.75*np.array((normal[1],-normal[0])),self.skeleton[1]-1.75*np.array((normal[1],-normal[0]))])
+        normal=self.skeleton[-1]-self.skeleton[-2]
+        pygame.draw.polygon(screen,Blue,[self.skeleton[-1],self.skeleton[-1]+np.array(normal)+1.5*np.array((normal[1],-normal[0])),self.skeleton[-1]+np.array(normal)-1.5*np.array((normal[1],-normal[0]))])
+        
 
 # Define the class School_of_fish
 class School_of_fish:
@@ -117,15 +125,17 @@ class Predator:
     """The Predator class determines the shark and how to control it."""
     # Initialize the shark with a random position and direction
     def __init__(self, width, height):
-        self.position = np.array([width*random.random(),height*random.random()])
-        self.dimension = [7,10,10,10,9,9,7,5,5,4,4,3,3]
+        self.position = 0.8*np.array([width*random.random(),height*random.random()])
+        self.dimension = [7,10,10,10,9,9,7,5,5,4,4,4,3]
         self.direction = random_normal_vector()
         self.skeleton = np.array([self.position-i*5*self.direction for i in range(len(self.dimension))])
+        self.tail_size = 4
+        self.tail = np.array([self.skeleton[-1]-i*4*self.direction for i in range(self.tail_size)])
         self.speed = 1.2
         self.boost_level = 100
     
+    # Function to update the position of the Shark according the command of the user
     def update_position(self,x,y,boost):
-    # Handle key presses
         if boost and Shark.boost_level > 0:
             Shark.speed = 2
             Shark.boost_level -= 1
@@ -140,19 +150,41 @@ class Predator:
             Shark.direction = 0.999*self.direction
             Shark.position += Shark.direction
 
+        # Avoid the border of the aquiarium
+        avoid_border = np.array([0.,0.])
+        border_visibility = ((width+height)/2)/20
+        if np.abs(self.position[0]-width/2)>width/2-border_visibility:
+            #print(np.abs(self.position[0]-width/2)-border_visibility)
+            avoid_border[0] += -np.sign(self.position[0]-width/2)*(np.abs(self.position[0]-width/2)-border_visibility)**(1/2)
+        if np.abs(self.position[1]-height/2)>height/2-border_visibility:
+            #print(np.abs(self.position[1]-height/2)-border_visibility)
+            avoid_border[1] += -np.sign(self.position[1]-height/2)*(np.abs(self.position[1]-height/2)-border_visibility)**(1/2)
+        self.position += avoid_border/10
+        self.direction += avoid_border/100
+
         # Keep the point within the screen boundaries
-        Shark.position[0] = max(5, min(width - 5, Shark.position[0]))
-        Shark.position[1] = max(5, min(height - 5, Shark.position[1]))
+        Shark.position[0] = max(10, min(width - 10, Shark.position[0]))
+        Shark.position[1] = max(10, min(height - 10, Shark.position[1]))
         
+    # Create the animation of the Shark    
     def animate(self, x, y, boost=False, loading=False):
         if not loading:
             self.update_position(x, y, boost)
         self.skeleton[0]=self.position
-        pygame.draw.circle(screen, Blue, self.skeleton[0], self.dimension[0])
+        pygame.draw.circle(screen, Grey, self.skeleton[0], self.dimension[0])
         for i in range(len(self.skeleton)-1):
             direction = normalize(self.skeleton[i+1] - self.skeleton[i])
             self.skeleton[i+1] = self.skeleton[i] + 5*direction
-            pygame.draw.circle(screen, Red, self.skeleton[i], self.dimension[i])
+            pygame.draw.circle(screen, Grey, self.skeleton[i+1], self.dimension[i+1])
+        normal=self.skeleton[2]-self.skeleton[3]
+        pygame.draw.polygon(screen,Grey,[self.skeleton[0],self.skeleton[3]+4*np.array((normal[1],-normal[0])),self.skeleton[3]-4*np.array((normal[1],-normal[0]))])
+        normal=self.skeleton[9]-self.skeleton[10]
+        pygame.draw.polygon(screen,Grey,[self.skeleton[8],self.skeleton[10]+2*np.array((normal[1],-normal[0])),self.skeleton[10]-2*np.array((normal[1],-normal[0]))])
+        self.tail[0]=self.skeleton[-1]
+        for i in range(self.tail_size-1):
+            direction = normalize(self.tail[i+1] - self.tail[i])
+            self.tail[i+1] = self.tail[i] + 4*direction
+            pygame.draw.line(screen, Grey, self.tail[i], self.tail[i+1],width=3)
 
 
 ## Main program
@@ -168,11 +200,16 @@ width, height = 800, 600
 screen = pygame.display.set_mode((width, height + 100))
 pygame.display.set_caption("Shark attack")
 
+
+with open('best_score.txt', 'w') as file:
+    file.write(f"{70.}")
+
 # Definition of the colors
 White = (255, 255, 255)
 Black = (0, 0, 0)
 Red = (255, 0, 0)
 Blue = (0, 0, 255)
+Grey = (100, 100, 100)
 
 
 ## Opening screen
@@ -268,6 +305,7 @@ while not end_of_game:
         screen.blit(Hunting, Hunting_bg)
         draw_level_bar(screen, 580, 650, 200, 20, Shark.boost_level/100 )
         draw_level_bar(screen, 20, 650, 200, 20, ((nbr_of_fish - School.size()))/10 )
+        draw_aquarium(width,height)
         Shark.animate(0,0,loading=True)
         School.animate(Shark)
         screen.blit(Count, Count_bg)
@@ -285,7 +323,7 @@ while not end_of_game:
     ## Main game loop
 
     # Initialization of the timer
-    elapsed_time = 100000
+    elapsed_time = 70
     start = time.time()
     timer = 0
     win = True
@@ -318,15 +356,16 @@ while not end_of_game:
         screen.fill(White)
         screen.blit(Boost, Boost_bg)
         screen.blit(Hunting, Hunting_bg)
+        draw_aquarium(width,height)
         draw_level_bar(screen, 580, 650, 200, 20, Shark.boost_level/100 )
         draw_level_bar(screen, 20, 650, 200, 20, ((nbr_of_fish - School.size()))/10 )
-        Shark.animate(x,y,boost)
         School.animate(Shark)
+        Shark.animate(x,y,boost)
         pygame.display.flip()
         clock.tick(FPS)
 
         # Check if the game is over
-        if nbr_of_fish - School.size() == 10:
+        if nbr_of_fish - School.size() >= 10:
             running = False
             end = time.time()
             elapsed_time = end - start
@@ -346,14 +385,24 @@ while not end_of_game:
 
     ## End of the game
 
+    with open("best_score.txt", "r") as file:
+        best_score = float(file.read())
+
     # Prepare the texts
     Score_text = pygame.font.Font(None, 40)
     if win:
-        Score = Score_text.render("Your score is:", True, (255, 255, 255))
-        Score_background = Score.get_rect(center=(400, 300))
-
-        Score_value = Score_text.render(f"{elapsed_time:.3f} seconds", True, (255, 255, 255))
-        Value_background = Score_value.get_rect(center=(400, 350))
+        if elapsed_time<best_score:
+            Score = Score_text.render("New record !!!", True, (255, 255, 255))
+            Score_background = Score.get_rect(center=(400, 300))
+            Score_value = Score_text.render(f"{elapsed_time:.3f} seconds", True, (255, 255, 255))
+            Value_background = Score_value.get_rect(center=(400, 350))
+            with open('best_score.txt', 'w') as file:
+                file.write(f"{elapsed_time:.3f}")
+        else:
+            Score = Score_text.render("Your score is:", True, (255, 255, 255))
+            Score_background = Score.get_rect(center=(400, 300))
+            Score_value = Score_text.render(f"{elapsed_time:.3f} seconds", True, (255, 255, 255))
+            Value_background = Score_value.get_rect(center=(400, 350))
     else:
         Score = Score_text.render("Game over!", True, (255, 255, 255))
         Score_background = Score.get_rect(center=(400, 300))

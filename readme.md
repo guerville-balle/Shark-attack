@@ -9,6 +9,7 @@ A simple arcade-style game where you control a shark and try to eat as many fish
 - Speed boost mechanic with regenerating boost meter
 - Background music
 - Multiple rounds of play
+- Best score memory
 
 ## Requirements
 
@@ -46,8 +47,6 @@ python shark_attack.py
 
 ## Game Elements
 
-- Red circle: Your shark
-- Blue circles: Fish
 - Green bars:
   - Left bar: Progress toward catching 10 fish
   - Right bar: Boost meter level
