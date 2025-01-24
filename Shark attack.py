@@ -133,22 +133,32 @@ class Predator:
         self.tail = np.array([self.skeleton[-1]-i*4*self.direction for i in range(self.tail_size)])
         self.speed = 1.2
         self.boost_level = 100
+        self.turn_back=0
     
     # Function to update the position of the Shark according the command of the user
     def update_position(self,x,y,boost):
         if boost and Shark.boost_level > 0:
-            Shark.speed = 2
-            Shark.boost_level -= 1
+            self.speed = 2
+            self.boost_level -= 1
         else:
-            Shark.speed = 1.2
-            if Shark.boost_level < 100:
-                Shark.boost_level += 0.1
-        if not (x,y)==(0,0):
-            Shark.direction = speed_scale*normalize(np.array([x,y]))
-            Shark.position += Shark.speed*Shark.direction
+            self.speed = 1.2
+            if self.boost_level < 100:
+                self.boost_level += 0.1
+        #print(self.direction, speed_scale*np.array([x,y]))
+        if (normalize(self.direction)==-normalize(np.array([x,y]))).all():
+            self.turn_back=10
+            self.direction = speed_scale*normalize(self.direction + np.array([np.cos(18),np.sin(18)]))
+            self.position += self.speed*self.direction
+        elif self.turn_back>0:
+            self.turn_back-=1
+            self.direction = speed_scale*normalize(self.direction + np.array([np.cos(18),np.sin(18)]))
+            self.position += self.speed*self.direction
+        elif not (x,y)==(0,0):
+            self.direction = speed_scale*normalize(np.array([x,y]))
+            self.position += self.speed*self.direction
         else:
-            Shark.direction = 0.999*self.direction
-            Shark.position += Shark.direction
+            self.direction = 0.999*self.direction
+            self.position += self.direction
 
         # Avoid the border of the aquiarium
         avoid_border = np.array([0.,0.])
@@ -199,10 +209,6 @@ pygame.mixer.init()
 width, height = 800, 600
 screen = pygame.display.set_mode((width, height + 100))
 pygame.display.set_caption("Shark attack")
-
-
-with open('best_score.txt', 'w') as file:
-    file.write(f"{70.}")
 
 # Definition of the colors
 White = (255, 255, 255)
