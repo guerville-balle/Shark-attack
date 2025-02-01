@@ -16,13 +16,15 @@ import time
 # Return a normal vector with random direction
 def random_normal_vector():
     v = np.array([2*random.random()-1,2*random.random()-1])
-    d = (v[0]**2+v[1]**2)**(1/2)
-    return v/d
+    return normalize(v)
     
 # Return the norm of a vector
 def normalize(v):
     d = (v[0]**2+v[1]**2)**(1/2)
-    return v/d
+    if not d == 0:
+        return v/d
+    else:
+        return np.zeros(2)
 
 # Compute the distance between two points
 def distance(p,q):

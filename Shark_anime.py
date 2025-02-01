@@ -83,30 +83,6 @@ class Predator:
             pygame.draw.line(screen, Grey, self.tail[i], self.tail[i+1],width=3)
 
 
-        # # Define points
-        # fine_surface = pygame.Surface((30, 10), pygame.SRCALPHA)  # Allow transparency
-        # fine_surface.fill((0, 0, 0, 0))  # Transparent background
-        # center1 = (10, 10)
-        # center2 = (20, 10)
-        # radius = 10
-        # points=[]
-        # for angle in range(90,180):
-        #     x = center1[0] + radius * math.cos(math.radians(angle))
-        #     y = center1[1] + radius * math.sin(math.radians(angle))
-        #     points.append((x, y))
-        # for angle in range(0,90):
-        #     x = center2[0] + radius * math.cos(math.radians(angle))
-        #     y = center2[1] + radius * math.sin(math.radians(angle))
-        #     points.append((x, y))          
-        # pygame.draw.polygon(fine_surface, (255,0,0), points)
-        # rotated_surface = pygame.transform.rotate(ellipse_surface, self.position[0])
-        # rotated_rect = rotated_surface.get_rect(center=(200, 200))  # Center on screen
-        # screen.blit(rotated_surface, rotated_rect.center)
-
-
-
-
-
 
 ## Main program
 
